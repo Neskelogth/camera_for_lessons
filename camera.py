@@ -1,21 +1,17 @@
-import requests
-import cv2
+import requests, cv2, time, os, subprocess
 import numpy as np
-from datetime import date, datetime
-import os
 import sounddevice as sd
+from datetime import date, datetime
 from soundfile import write
-import subprocess
+
+start = time.time()
 
 sd.default.samplerate = 44100
 sd.default.channels = 2
-
-# Replace the below URL with your own. Make sure to add "/shot.jpg" at last.
 url = "http://192.168.0.5:30080/shot.jpg"
 seconds = 10800
-fs = 44100
 
-# # name = input("Course name?")
+# name = input("Course name?")
 name = 'ML'
 today = str(date.today()).replace('-', '_')
 current_time = datetime.now().strftime("%H_%M")
@@ -26,10 +22,7 @@ filename = name + '_' + today + '_' + current_time + '.mp4'
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 out = cv2.VideoWriter('output.avi', fourcc, 10.0, (1920, 1080))
 
-# first_command = 'ffmpeg -loglevel panic -i output.avi -c copy output.mp4'
-# second_command = 'ffmpeg -loglevel panic -i output.mp4 -filter:v fps=fps=30 output_30_fps.mp4'
-
-recording = sd.rec(seconds * fs, samplerate=fs, channels=2)
+recording = sd.rec(seconds * sd.default.samplerate)
 
 # While loop to continuously fetching data from the Url
 while True:
@@ -54,22 +47,27 @@ print("wrote recording")
 subprocess.run(["ffmpeg", "-loglevel", "panic", "-i", "output.avi", "-c", "copy", "output.mp4"],
                capture_output=True)
 
-print("Things done")
-print(sd.query_devices(kind='input'))
+print("Converted to mp4")
+# print(sd.query_devices(kind='input'))
 
 duration = float(input("Insert duration of video: "))
-print(duration)
+# print(duration)
 
 # cut to duration of video
 os.system(f"ffmpeg -loglevel panic -ss 0 -i output.wav -t {duration} -c copy output_cut.wav")
 
+print("Cut audio")
+
 # convert to mp3
 third_result = subprocess.run(["ffmpeg",
+                               "-loglevel", "panic",
                                "-i", "output_cut.wav",
                                "-vn", "-ar", "44100",
                                "-ac", "2",
                                "-b:a", "192k",
                                "output_cut_r.mp3"])
+
+print("Reformat to mp3")
 
 # increase volume
 # third_result = subprocess.run(["ffmpeg",
@@ -87,24 +85,31 @@ fourth_result = subprocess.run(["ffmpeg",
                                 "-c", "copy",
                                 "output_semi_final.mkv"])
 
+print("Merged video and audio")
+
 subprocess.run(["ffmpeg",
                 "-loglevel", "panic",
                 "-i", "output_semi_final.mkv", "-c", "copy", "output_final.mp4"],
                capture_output=True)
+
+print("Converted to mp4 again")
 
 subprocess.run(["ffmpeg",
                 "-loglevel", "panic",
                 "-i", "output_final.mp4", "-filter:v", "fps=fps=30", "output_30_fps.mp4"],
                capture_output=True)
 
+print("To 30 fps")
+
+# time.sleep(30)
+
 # removing temp files
-os.remove('output.avi')
-os.remove('output.mp4')
-os.remove('output_30_fps.mp4')
-os.remove('output.wav')
-os.remove('output_cut.wav')
-os.remove('output_cut_r.mp3')
-os.remove('output_semi_final.mkv')
+# os.remove('output.avi')
+# os.remove('output.mp4')
+# os.remove('output_30_fps.mp4')
+# os.remove('output.wav')
+# os.remove('output_cut.wav')
+# os.remove('output_cut_r.mp3')
+# os.remove('output_semi_final.mkv')
 
-
-print("done")
+print(time.time() - start)
