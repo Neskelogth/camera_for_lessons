@@ -8,7 +8,7 @@ foreach($dir as $fileInfo){
 		
 		$stringName = strval($fileInfo-> getFilename());
 
-		if(strpos($stringName, "mp4") !== false && strpos($stringName, "output") === false){
+		if(strpos($stringName, "mp4") !== false && $stringName === 'output.mp4'){
 			
 			
 			exec('ffmpeg -i "' . $stringName . '" -filter:v fps=fps=30 "'.str_replace("_final", "", $stringName));
@@ -20,7 +20,9 @@ foreach($dir as $fileInfo){
 				 strpos($stringName, "avi") !== false)){
 
 			unlink($stringName);
-		}
-		
+		}else if(strpos($stringName, "jpg") !== false || strpos($stringName, "txt") !== false){
+
+			unlink($stringName);
+		}		
 	}
 }
